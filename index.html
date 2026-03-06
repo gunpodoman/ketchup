@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>운명의 케첩 야바위</title>
+    <style>
+        body { text-align: center; font-family: 'Arial', sans-serif; background-color: #f0f0f0; }
+        h1 { color: #d32f2f; }
+        .game-area { display: flex; justify-content: center; margin-top: 100px; height: 200px; }
+        .cup-container { position: relative; width: 120px; height: 150px; margin: 0 20px; cursor: pointer; transition: transform 0.5s; }
+        .cup { width: 100px; height: 120px; background-color: #ff9800; border-radius: 50% 50% 10% 10%; position: absolute; bottom: 0; left: 10px; z-index: 2; transition: bottom 0.5s; }
+        .ketchup { width: 60px; height: 80px; background-color: #d32f2f; border-radius: 10px; position: absolute; bottom: 10px; left: 30px; z-index: 1; display: none; border: 2px solid #fff; }
+        .ketchup::after { content: 'KETCHUP'; color: white; font-size: 10px; display: block; margin-top: 30px; }
+        #status { margin-top: 50px; font-size: 1.5rem; font-weight: bold; }
+        button { padding: 10px 20px; font-size: 1rem; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 5px; margin-top: 20px; }
+        button:disabled { background-color: #ccc; }
+    </style>
+</head>
+<body>
+
+    <h1>🍅 누가 케첩을 가질 것인가? 🍅</h1>
+    <p>컵 3개가 섞인 뒤, 케첩이 든 컵을 고른 사람이 당첨!</p>
+    
+    <div class="game-area" id="game-area">
+        <div class="cup-container" onclick="openCup(0)" id="container-0">
+            <div class="cup" id="cup-0"></div>
+            <div class="ketchup" id="ketchup-0"></div>
+        </div>
+        <div class="cup-container" onclick="openCup(1)" id="container-1">
+            <div class="cup" id="cup-1"></div>
+            <div class="ketchup" id="ketchup-1"></div>
+        </div>
+        <div class="cup-container" onclick="openCup(2)" id="container-2">
+            <div class="cup" id="cup-2"></div>
+            <div class="ketchup" id="ketchup-2"></div>
+        </div>
+    </div>
+
+    <div id="status">준비되었다면 시작 버튼을 누르세요.</div>
+    <button id="start-btn" onclick="startGame()">섞기 시작!</button>
+
+    <script>
+        let ketchupIndex = -1;
+        let isShuffling = false;
+        let gameActive = false;
+
+        function startGame() {
+            if (isShuffling) return;
+            
+            // 초기화
+            gameActive = false;
+            isShuffling = true;
+            document.getElementById('status').innerText = "섞는 중... 눈 크게 뜨세요!";
+            document.getElementById('start-btn').disabled = true;
+            
+            // 모든 컵 닫기
+            document.querySelectorAll('.cup').forEach(cup => cup.style.bottom = '0');
+            document.querySelectorAll('.ketchup').forEach(k => k.style.display = 'none');
+
+            // 케첩 위치 랜덤 결정
+            ketchupIndex = Math.floor(Math.random() * 3);
+            
+            // 셔플 애니메이션 (시각적 효과)
+            let count = 0;
+            const shuffleInterval = setInterval(() => {
+                const area = document.getElementById('game-area');
+                const containers = Array.from(document.querySelectorAll('.cup-container'));
+                // 랜덤하게 순서 섞기
+                containers.sort(() => Math.random() - 0.5);
+                containers.forEach(container => area.appendChild(container));
+                
+                count++;
+                if (count > 10) {
+                    clearInterval(shuffleInterval);
+                    isShuffling = false;
+                    gameActive = true;
+                    document.getElementById('status').innerText = "자, 이제 하나를 고르세요!";
+                }
+            }, 200);
+        }
+
+        function openCup(index) {
+            if (!gameActive || isShuffling) return;
+
+            gameActive = false;
+            const containers = Array.from(document.querySelectorAll('.cup-container'));
+            
+            // 선택한 컵 올리기
+            document.querySelectorAll('.cup').forEach((cup, idx) => {
+                cup.style.bottom = '100px'; // 모든 컵 오픈
+                
+                // 실제 케첩이 있는 위치의 케첩 보여주기
+                // 컵의 ID와 상관없이 현재 랜덤하게 정해진 ketchupIndex만 보여줌
+                if (idx === ketchupIndex) {
+                    document.getElementById(`ketchup-${idx}`).style.display = 'block';
+                }
+            });
+
+            // 결과 판정
+            // 클릭된 컨테이너가 케첩을 포함하고 있는지 확인
+            const clickedContainerId = event.currentTarget.id;
+            const ketchupContainerId = `container-${ketchupIndex}`;
+
+            if (clickedContainerId === ketchupContainerId) {
+                document.getElementById('status').innerText = "🎉 당첨! 당신이 케첩의 주인입니다!";
+                document.getElementById('status').style.color = "#d32f2f";
+            } else {
+                document.getElementById('status').innerText = "휴... 살았습니다! 케첩은 다른 곳에 있네요.";
+                document.getElementById('status').style.color = "#388e3c";
+            }
+
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('start-btn').innerText = "다시 하기";
+        }
+    </script>
+</body>
+</html>
