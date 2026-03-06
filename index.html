@@ -2,241 +2,386 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>3D 케첩 운명의 장난</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>운명의 케첩 야바위</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: 'Pretendard', sans-serif; }
-        #ui { position: absolute; top: 20px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
-        h1 { color: #ff4444; text-shadow: 0 0 10px rgba(0,0,0,0.5); margin-bottom: 10px; }
-        #status { color: white; font-size: 1.5rem; margin-bottom: 20px; }
-        button { 
-            padding: 12px 30px; font-size: 1.2rem; cursor: pointer; 
-            background: #d32f2f; color: white; border: none; border-radius: 50px;
-            pointer-events: auto; transition: transform 0.2s, background 0.2s;
+        :root {
+            --primary-red: #d32f2f;
+            --accent-orange: #ff9800;
+            --bg-dark: #1a1a1a;
+            --text-light: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--bg-dark);
+            font-family: 'Pretendard', sans-serif;
+            color: var(--text-light);
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            color: var(--primary-red);
+            text-shadow: 0 0 20px rgba(211, 47, 47, 0.5);
+        }
+
+        #status {
+            font-size: 1.2rem;
+            margin-top: 10px;
+            height: 1.5em;
+            color: #aaa;
+        }
+
+        .game-container {
+            position: relative;
+            width: 600px;
+            height: 300px;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding-bottom: 50px;
+        }
+
+        /* 컵 스타일 */
+        .cup-wrapper {
+            position: absolute;
+            bottom: 50px;
+            width: 120px;
+            height: 160px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            z-index: 5;
+        }
+
+        .cup {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #fbc02d 0%, #f9a825 100%);
+            border-radius: 60px 60px 15px 15px;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2), 
+                        0 10px 20px rgba(0,0,0,0.4);
+            z-index: 2;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .cup::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 15%;
+            width: 70%;
+            height: 15px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+        }
+
+        /* 케첩 스타일 */
+        .ketchup {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 80px;
+            background: #d32f2f;
+            border-radius: 8px 8px 4px 4px;
+            display: none;
+            z-index: 1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .ketchup::before {
+            content: 'TOMATO';
+            position: absolute;
+            top: 30px;
+            width: 100%;
+            text-align: center;
+            font-size: 8px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .ketchup-cap {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 15px;
+            background: #fff;
+            border-radius: 3px;
+        }
+
+        /* 제어 버튼 */
+        .controls {
+            margin-top: 50px;
+            z-index: 10;
+        }
+
+        button {
+            background-color: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
             box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
         }
-        button:hover { background: #ff5252; transform: scale(1.05); }
-        button:disabled { background: #555; cursor: not-allowed; }
-        #canvas-container { width: 100vw; height: 100vh; }
+
+        button:hover {
+            background-color: #f44336;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(211, 47, 47, 0.6);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* 결과 메시지 박스 */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: #222;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--primary-red);
+        }
+
+        .modal-content h2 {
+            font-size: 2rem;
+            margin-top: 0;
+        }
+
+        .modal-content button {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        <h1>🍅 KETCHUP ROULETTE 3D 🍅</h1>
-        <div id="status">준비되면 버튼을 누르세요!</div>
-        <button id="start-btn">섞기 시작!</button>
+    <div class="header">
+        <h1>🍅 KETCHUP SHUFFLE 🍅</h1>
+        <div id="status">행운을 빌어요!</div>
     </div>
-    <div id="canvas-container"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/Tween.min.js"></script>
+    <div class="game-container" id="game-container">
+        <!-- 컵 1 -->
+        <div class="cup-wrapper" id="wrapper-0" style="left: 50px;" onclick="handleCupClick(0)">
+            <div class="ketchup" id="ketchup-0"><div class="ketchup-cap"></div></div>
+            <div class="cup" id="cup-0"></div>
+        </div>
+        <!-- 컵 2 -->
+        <div class="cup-wrapper" id="wrapper-1" style="left: 240px;" onclick="handleCupClick(1)">
+            <div class="ketchup" id="ketchup-1"><div class="ketchup-cap"></div></div>
+            <div class="cup" id="cup-1"></div>
+        </div>
+        <!-- 컵 3 -->
+        <div class="cup-wrapper" id="wrapper-2" style="left: 430px;" onclick="handleCupClick(2)">
+            <div class="ketchup" id="ketchup-2"><div class="ketchup-cap"></div></div>
+            <div class="cup" id="cup-2"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="start-btn" onclick="initGame()">게임 시작!</button>
+    </div>
+
+    <div class="modal" id="result-modal">
+        <div class="modal-content">
+            <h2 id="result-title">결과</h2>
+            <p id="result-text"></p>
+            <button onclick="closeModal()">다시 하기</button>
+        </div>
+    </div>
 
     <script>
-        let scene, camera, renderer, cups = [], ketchup;
-        let isShuffling = false, gameActive = false;
-        let ketchupPos = 1; // 0, 1, 2 중 하나
+        let ketchupIndex = 1;
+        let isMoving = false;
+        let gameActive = false;
+        let currentPositions = [0, 1, 2]; // 각 래퍼가 위치한 인덱스 (0:왼쪽, 1:가운데, 2:오른쪽)
+        const leftCoords = [50, 240, 430];
 
-        const cupColors = [0xff9800, 0xff9800, 0xff9800];
-        const positions = [-4, 0, 4];
-
-        init();
-        animate();
-
-        function init() {
-            // Scene & Camera
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a1a);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 10);
-            camera.lookAt(0, 1, 0);
-
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            const spotLight = new THREE.SpotLight(0xffffff, 1);
-            spotLight.position.set(0, 15, 10);
-            spotLight.castShadow = true;
-            scene.add(spotLight);
-
-            // Floor
-            const floorGeo = new THREE.PlaneGeometry(20, 20);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            scene.add(floor);
-
-            // Ketchup Model (단순화된 병 모양)
-            const kGroup = new THREE.Group();
-            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.5, 32);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd32f2f });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            const capGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.4, 32);
-            const capMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const cap = new THREE.Mesh(capGeo, capMat);
-            cap.position.y = 0.9;
-            kGroup.add(body, cap);
-            ketchup = kGroup;
-            scene.add(ketchup);
-
-            // Cups
-            for (let i = 0; i < 3; i++) {
-                const cupGroup = new THREE.Group();
-                const cupGeo = new THREE.CylinderGeometry(1.2, 1, 2.5, 32, 1, true);
-                const cupMat = new THREE.MeshStandardMaterial({ color: 0xff9800, side: THREE.DoubleSide });
-                const cupMesh = new THREE.Mesh(cupGeo, cupMat);
-                
-                const topGeo = new THREE.CircleGeometry(1.2, 32);
-                const topMesh = new THREE.Mesh(topGeo, cupMat);
-                topMesh.rotation.x = -Math.PI / 2;
-                topMesh.position.y = 1.25;
-
-                cupGroup.add(cupMesh, topMesh);
-                cupGroup.position.set(positions[i], 1.25, 0);
-                cupGroup.castShadow = true;
-                cupGroup.userData = { id: i };
-                cups.push(cupGroup);
-                scene.add(cupGroup);
-            }
-
-            // Raycaster for clicking
-            window.addEventListener('mousedown', onMouseDown);
-            document.getElementById('start-btn').addEventListener('click', startGame);
+        function setStatus(msg, color = "#aaa") {
+            const status = document.getElementById('status');
+            status.innerText = msg;
+            status.style.color = color;
         }
 
-        async function startGame() {
-            if (isShuffling) return;
-            isShuffling = true;
+        async function initGame() {
+            if (isMoving) return;
             gameActive = false;
-            document.getElementById('status').innerText = "케첩 확인 중...";
             document.getElementById('start-btn').disabled = true;
-
-            // 1. 모든 컵 올리기 (케첩 위치 보여주기)
-            ketchupPos = Math.floor(Math.random() * 3);
-            ketchup.position.set(positions[ketchupPos], 0.75, 0);
-            ketchup.visible = true;
-
-            await liftCups(2.5);
-            await new Promise(r => setTimeout(r, 800));
-            await liftCups(0); // 다시 닫기
             
-            document.getElementById('status').innerText = "섞습니다! 눈 크게 뜨세요!";
+            // 초기화: 컵 내리기 및 케첩 숨기기
+            resetCups();
             
-            // 2. 섞기 (10회 무작위 교차)
-            for (let i = 0; i < 12; i++) {
-                await shuffleStep();
-            }
+            // 1. 케첩 위치 정하기
+            ketchupIndex = Math.floor(Math.random() * 3);
+            
+            // 2. 케첩 먼저 보여주기
+            setStatus("케첩 위치를 기억하세요!");
+            await liftCup(ketchupIndex, true);
+            await sleep(1000);
+            await liftCup(ketchupIndex, false);
+            await sleep(500);
 
-            isShuffling = false;
+            // 3. 섞기 시작
+            setStatus("섞는 중...");
+            await startShuffle();
+
+            setStatus("케첩이 든 컵을 고르세요!", "#ff9800");
             gameActive = true;
-            document.getElementById('status').innerText = "케첩이 든 컵을 고르세요!";
-        }
-
-        function liftCups(height) {
-            return new Promise(resolve => {
-                cups.forEach((cup, i) => {
-                    new TWEEN.Tween(cup.position)
-                        .to({ y: height + 1.25 }, 500)
-                        .easing(TWEEN.Easing.Quadratic.Out)
-                        .onComplete(() => { if(i===0) resolve(); })
-                        .start();
-                });
-            });
-        }
-
-        function shuffleStep() {
-            return new Promise(resolve => {
-                const idx1 = Math.floor(Math.random() * 3);
-                let idx2 = Math.floor(Math.random() * 3);
-                while (idx1 === idx2) idx2 = Math.floor(Math.random() * 3);
-
-                const pos1 = cups[idx1].position.x;
-                const pos2 = cups[idx2].position.x;
-
-                // 궤적을 그리며 섞기 (Arc)
-                new TWEEN.Tween(cups[idx1].position)
-                    .to({ x: pos2 }, 300)
-                    .easing(TWEEN.Easing.Quadratic.InOut)
-                    .start();
-
-                new TWEEN.Tween(cups[idx2].position)
-                    .to({ x: pos1 }, 300)
-                    .easing(TWEEN.Easing.Quadratic.InOut)
-                    .onComplete(resolve)
-                    .start();
-                
-                // 케첩이 있는 컵의 위치도 추적
-                if (ketchupPos === idx1) ketchupPos = -100; // 이동 중 임시값
-                else if (ketchupPos === idx2) ketchupPos = -200;
-
-                setTimeout(() => {
-                    if (ketchupPos === -100) ketchupPos = idx2;
-                    else if (ketchupPos === -200) ketchupPos = idx1;
-                    ketchup.position.x = cups[ketchupPos].position.x;
-                }, 150);
-            });
-        }
-
-        function onMouseDown(event) {
-            if (!gameActive) return;
-
-            const mouse = new THREE.Vector2();
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(cups, true);
-
-            if (intersects.length > 0) {
-                let selectedCup = intersects[0].object;
-                while(selectedCup.parent !== scene) selectedCup = selectedCup.parent;
-                
-                revealResult(selectedCup);
-            }
-        }
-
-        function revealResult(selectedCup) {
-            gameActive = false;
-            const isWinner = (cups.indexOf(selectedCup) === ketchupPos);
-
-            // 모든 컵 들기
-            cups.forEach(cup => {
-                new TWEEN.Tween(cup.position)
-                    .to({ y: 4 }, 600)
-                    .easing(TWEEN.Easing.Elastic.Out)
-                    .start();
-            });
-
-            if (isWinner) {
-                document.getElementById('status').innerText = "💥 당첨! 케첩은 당신의 것!";
-                document.getElementById('status').style.color = "#ff4444";
-            } else {
-                document.getElementById('status').innerText = "세이프! 운이 좋으시네요.";
-                document.getElementById('status').style.color = "#44ff44";
-            }
-
             document.getElementById('start-btn').disabled = false;
-            document.getElementById('start-btn').innerText = "복수하기 (다시 시작)";
         }
 
-        function animate(time) {
-            requestAnimationFrame(animate);
-            TWEEN.update(time);
-            renderer.render(scene, camera);
+        function resetCups() {
+            for(let i=0; i<3; i++) {
+                document.getElementById(`cup-${i}`).style.transform = "translateY(0)";
+                document.getElementById(`ketchup-${i}`).style.display = "none";
+            }
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        function liftCup(index, isUp) {
+            return new Promise(resolve => {
+                const cup = document.getElementById(`cup-${index}`);
+                const ketchup = document.getElementById(`ketchup-${index}`);
+                
+                if (isUp) {
+                    ketchup.style.display = "block";
+                    cup.style.transform = "translateY(-120px)";
+                } else {
+                    cup.style.transform = "translateY(0)";
+                }
+                
+                setTimeout(resolve, 600);
+            });
+        }
+
+        async function startShuffle() {
+            isMoving = true;
+            const shuffleCount = 12;
+            
+            for (let i = 0; i < shuffleCount; i++) {
+                // 서로 다른 두 위치 선택
+                let posA = Math.floor(Math.random() * 3);
+                let posB = Math.floor(Math.random() * 3);
+                while (posA === posB) posB = Math.floor(Math.random() * 3);
+
+                await swapCups(posA, posB);
+            }
+            isMoving = false;
+        }
+
+        function swapCups(posA, posB) {
+            return new Promise(resolve => {
+                // 해당 위치에 있는 wrapper 찾기
+                const idA = currentPositions.indexOf(posA);
+                const idB = currentPositions.indexOf(posB);
+
+                const wrapA = document.getElementById(`wrapper-${idA}`);
+                const wrapB = document.getElementById(`wrapper-${idB}`);
+
+                // 위치 교환 애니메이션
+                wrapA.style.transition = "all 0.4s cubic-bezier(0.45, 0.05, 0.55, 0.95)";
+                wrapB.style.transition = "all 0.4s cubic-bezier(0.45, 0.05, 0.55, 0.95)";
+
+                // 위아래로 살짝 엇갈리게 교차 (곡선 느낌)
+                wrapA.style.zIndex = "10";
+                wrapB.style.zIndex = "5";
+                
+                const midPoint = (leftCoords[posA] + leftCoords[posB]) / 2;
+                
+                // 실제 이동
+                wrapA.style.left = `${leftCoords[posB]}px`;
+                wrapB.style.left = `${leftCoords[posA]}px`;
+
+                // 데이터 업데이트
+                currentPositions[idA] = posB;
+                currentPositions[idB] = posA;
+
+                setTimeout(resolve, 400);
+            });
+        }
+
+        function handleCupClick(index) {
+            if (!gameActive || isMoving) return;
+            gameActive = false;
+
+            const isCorrect = (index === ketchupIndex);
+            
+            // 모든 컵 열기
+            for(let i=0; i<3; i++) {
+                const cup = document.getElementById(`cup-${i}`);
+                const ketchup = document.getElementById(`ketchup-${i}`);
+                ketchup.style.display = "block";
+                cup.style.transform = "translateY(-120px)";
+            }
+
+            setTimeout(() => {
+                showResult(isCorrect);
+            }, 600);
+        }
+
+        function showResult(isHit) {
+            const modal = document.getElementById('result-modal');
+            const title = document.getElementById('result-title');
+            const text = document.getElementById('result-text');
+
+            modal.style.display = "flex";
+
+            if (isHit) {
+                title.innerText = "🍅 당첨!!";
+                title.style.color = "var(--primary-red)";
+                text.innerText = "축하합니다! 케첩은 당신의 것입니다. (친구: 휴...)";
+            } else {
+                title.innerText = "💨 세이프!";
+                title.style.color = "#4caf50";
+                text.innerText = "운이 좋군요! 케첩을 피했습니다. (친구: 젠장!)";
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').style.display = "none";
+            setStatus("한 번 더?");
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
     </script>
 </body>
 </html>
