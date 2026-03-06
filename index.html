@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>운명의 케첩 야바위 (승리 설계 버전)</title>
+    <title>운명의 케첩 야바위</title>
     <style>
         :root {
             --primary-red: #d32f2f;
@@ -41,9 +41,10 @@
 
         #status {
             font-size: 1.2rem;
-            margin-top: 10px;
+            margin-top: 15px;
             height: 1.5em;
-            color: #aaa;
+            color: #ddd;
+            font-weight: 500;
         }
 
         .game-container {
@@ -62,7 +63,6 @@
             width: 120px;
             height: 160px;
             cursor: pointer;
-            transition: transform 0.3s ease;
             z-index: 5;
         }
 
@@ -75,7 +75,7 @@
             box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2), 
                         0 10px 20px rgba(0,0,0,0.4);
             z-index: 2;
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .cup::after {
@@ -98,7 +98,7 @@
             height: 80px;
             background: #d32f2f;
             border-radius: 8px 8px 4px 4px;
-            display: none;
+            display: none; /* 기본적으로 숨김 */
             z-index: 1;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
@@ -134,8 +134,8 @@
             background-color: var(--primary-red);
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 1.1rem;
+            padding: 15px 45px;
+            font-size: 1.2rem;
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
@@ -146,37 +146,18 @@
         button:hover {
             background-color: #f44336;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(211, 47, 47, 0.6);
         }
 
         button:disabled {
             background-color: #444;
             cursor: not-allowed;
             box-shadow: none;
+            transform: none;
         }
 
-        .modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .modal-content {
-            background: #222;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            border: 2px solid var(--primary-red);
-            max-width: 80%;
-        }
-
-        .modal-content h2 {
-            font-size: 2rem;
-            margin-top: 0;
+        /* 컵이 열린 상태의 스타일 */
+        .cup.open {
+            transform: translateY(-130px) rotate(-5deg);
         }
     </style>
 </head>
@@ -184,7 +165,7 @@
 
     <div class="header">
         <h1>🍅 KETCHUP SHUFFLE 🍅</h1>
-        <div id="status">행운을 빌어요!</div>
+        <div id="status">공정한 순번 정하기</div>
     </div>
 
     <div class="game-container" id="game-container">
@@ -203,26 +184,18 @@
     </div>
 
     <div class="controls">
-        <button id="start-btn" onclick="initGame()">게임 시작!</button>
-    </div>
-
-    <div class="modal" id="result-modal">
-        <div class="modal-content">
-            <h2 id="result-title">결과</h2>
-            <p id="result-text"></p>
-            <button onclick="closeModal()">다음 차례 진행</button>
-        </div>
+        <button id="start-btn" onclick="initGame()">게임 시작</button>
     </div>
 
     <script>
-        let ketchupIndex = 1;
+        let ketchupIndex = -1;
         let isMoving = false;
         let gameActive = false;
-        let clickCount = 0; // 몇 번째 클릭인지 추적
+        let clickCount = 0; 
         let currentPositions = [0, 1, 2];
         const leftCoords = [50, 240, 430];
 
-        function setStatus(msg, color = "#aaa") {
+        function setStatus(msg, color = "#ddd") {
             const status = document.getElementById('status');
             status.innerText = msg;
             status.style.color = color;
@@ -234,42 +207,49 @@
             clickCount = 0;
             document.getElementById('start-btn').disabled = true;
             
+            // 모든 상태 초기화
             resetCups();
             
-            // 처음 보여줄 때는 랜덤 위치 (조작을 숨기기 위함)
+            // 처음에는 진짜 랜덤하게 케첩 위치를 보여줌 (신뢰 확보)
             ketchupIndex = Math.floor(Math.random() * 3);
             
-            setStatus("케첩 위치를 잘 보세요!");
-            await liftCup(ketchupIndex, true);
-            await sleep(800);
+            setStatus("케첩의 위치를 확인하세요.");
+            await liftCup(ketchupIndex, true, true); // 진짜 보여줌
+            await sleep(1000);
             await liftCup(ketchupIndex, false);
             await sleep(300);
 
-            setStatus("섞는 중...");
+            setStatus("컵을 무작위로 섞습니다...");
             await startShuffle();
 
-            setStatus("첫 번째 분, 컵을 고르세요! (절대 안 걸림)", "#ff9800");
+            setStatus("첫 번째 분, 컵 하나를 선택하세요.", "#ff9800");
             gameActive = true;
         }
 
         function resetCups() {
             for(let i=0; i<3; i++) {
-                document.getElementById(`cup-${i}`).style.transform = "translateY(0)";
+                document.getElementById(`cup-${i}`).classList.remove('open');
+                document.getElementById(`cup-${i}`).style.transform = "";
                 document.getElementById(`ketchup-${i}`).style.display = "none";
             }
         }
 
-        function liftCup(index, isUp) {
+        // forceShow: 로직과 상관없이 시각적으로 케첩을 보여줄지 여부
+        function liftCup(index, isUp, forceShow = false) {
             return new Promise(resolve => {
                 const cup = document.getElementById(`cup-${index}`);
                 const ketchup = document.getElementById(`ketchup-${index}`);
                 
                 if (isUp) {
-                    ketchup.style.display = "block";
-                    cup.style.transform = "translateY(-120px)";
+                    if (forceShow || index === ketchupIndex) {
+                        ketchup.style.display = "block";
+                    } else {
+                        ketchup.style.display = "none";
+                    }
+                    cup.classList.add('open');
                 } else {
-                    cup.style.transform = "translateY(0)";
-                    setTimeout(() => { ketchup.style.display = "none"; }, 500);
+                    cup.classList.remove('open');
+                    setTimeout(() => { ketchup.style.display = "none"; }, 400);
                 }
                 
                 setTimeout(resolve, 600);
@@ -278,7 +258,7 @@
 
         async function startShuffle() {
             isMoving = true;
-            const shuffleCount = 10;
+            const shuffleCount = 12;
             for (let i = 0; i < shuffleCount; i++) {
                 let posA = Math.floor(Math.random() * 3);
                 let posB = Math.floor(Math.random() * 3);
@@ -295,8 +275,8 @@
                 const wrapA = document.getElementById(`wrapper-${idA}`);
                 const wrapB = document.getElementById(`wrapper-${idB}`);
 
-                wrapA.style.transition = "all 0.3s ease-in-out";
-                wrapB.style.transition = "all 0.3s ease-in-out";
+                wrapA.style.transition = "all 0.35s ease-in-out";
+                wrapB.style.transition = "all 0.35s ease-in-out";
                 wrapA.style.zIndex = "10";
                 wrapB.style.zIndex = "5";
                 
@@ -305,7 +285,7 @@
 
                 currentPositions[idA] = posB;
                 currentPositions[idB] = posA;
-                setTimeout(resolve, 310);
+                setTimeout(resolve, 360);
             });
         }
 
@@ -315,60 +295,32 @@
             clickCount++;
 
             if (clickCount === 1) {
-                // 조작: 첫 번째 클릭 시 무조건 빈 컵으로 만듦
-                // 만약 고른 컵이 케첩 컵이라면, 케첩을 다른 빈 컵 중 하나로 옮김
+                // [설계] 첫 번째 클릭: 무조건 빈 컵 연출
+                // 만약 사용자가 현재 ketchupIndex를 찍었다면, 몰래 위치를 바꿈
                 if (index === ketchupIndex) {
-                    let availableIndices = [0, 1, 2].filter(i => i !== index);
-                    ketchupIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+                    let others = [0, 1, 2].filter(i => i !== index);
+                    ketchupIndex = others[Math.floor(Math.random() * others.length)];
                 }
                 
-                await liftCup(index, true);
-                setStatus("안전합니다! 다음 차례...", "#4caf50");
-                setTimeout(() => showResult(false), 600);
-
+                await liftCup(index, true, false); // forceShow false이므로 케첩 안 보임
+                setStatus("휴, 빈 컵입니다! 다음 분 선택하세요.", "#4caf50");
+                
+                await sleep(1500);
+                await liftCup(index, false); // 컵 다시 닫기
+                await sleep(500);
+                
+                gameActive = true;
             } else if (clickCount === 2) {
-                // 조작: 두 번째 클릭 시 무조건 케첩으로 만듦
-                // 고른 컵을 무조건 케첩 컵으로 바꿈
+                // [설계] 두 번째 클릭: 무조건 당첨 연출
+                // 사용자가 누른 그곳을 케첩 위치로 확정함
                 ketchupIndex = index;
                 
-                await liftCup(index, true);
-                setStatus("당첨되었습니다!!!", "var(--primary-red)");
-                setTimeout(() => showResult(true), 600);
+                await liftCup(index, true, true); // forceShow true로 케첩 등장
+                setStatus("당첨입니다! 케첩을 가져가세요!", "var(--primary-red)");
+                
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('start-btn').innerText = "다시 하기";
             }
-        }
-
-        function showResult(isHit) {
-            const modal = document.getElementById('result-modal');
-            const title = document.getElementById('result-title');
-            const text = document.getElementById('result-text');
-            const btn = modal.querySelector('button');
-
-            modal.style.display = "flex";
-
-            if (isHit) {
-                title.innerText = "🍅 케첩 당첨!!";
-                title.style.color = "var(--primary-red)";
-                text.innerText = "운이 없으시군요! 두 번째 차례에서 케첩이 걸렸습니다.";
-                btn.innerText = "게임 종료 (다시 하기)";
-                btn.onclick = () => { location.reload(); };
-            } else {
-                title.innerText = "💨 세이프";
-                title.style.color = "#4caf50";
-                text.innerText = "첫 번째 분은 통과입니다. 이제 두 번째 분이 고를 차례입니다.";
-                btn.innerText = "두 번째 차례 진행";
-                btn.onclick = closeModal;
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('result-modal').style.display = "none";
-            const clickedIndices = Array.from(document.querySelectorAll('.cup'))
-                                      .filter(c => c.style.transform.includes('translateY'))
-                                      .map(c => parseInt(c.id.split('-')[1]));
-            
-            // 두 번째 차례 안내
-            setStatus("두 번째 분, 남은 컵 중에 고르세요!", "#ff9800");
-            gameActive = true;
         }
 
         function sleep(ms) {
